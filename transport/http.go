@@ -2,6 +2,7 @@ package transport
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,16 +10,7 @@ import (
 	"github.com/dinalt/jango"
 )
 
-const (
-	trnsIDLen = 10
-)
-
 var _ jango.Transport = (*HTTP)(nil)
-
-type request struct {
-	Body        interface{}
-	Transaction string `json:"transaction,omitempty"`
-}
 
 type HTTP struct {
 	*http.Client
@@ -26,7 +18,7 @@ type HTTP struct {
 	URL      string
 }
 
-func (c *HTTP) Request(req interface{}, resp interface{}) error {
+func (c *HTTP) Request(ctx context.Context, req interface{}, resp interface{}) error {
 	if req == nil {
 		panic("req is nil")
 	}
@@ -40,8 +32,11 @@ func (c *HTTP) Request(req interface{}, resp interface{}) error {
 	if err != nil {
 		return fmt.Errorf("request encoding: %w", err)
 	}
-
-	hResp, err := cli.Post(c.URL, "application/json", bb)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.URL, bb)
+	if err != nil {
+		return fmt.Errorf("http.NewRequestWithContext(...): %w", err)
+	}
+	hResp, err := cli.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("request send: %w", err)
 	}

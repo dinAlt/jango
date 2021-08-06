@@ -1,8 +1,11 @@
 package jango
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
-const transactionIDLen = 10
+const transactionIDLen = 16
 
 type Request interface {
 	Build() interface{}
@@ -31,7 +34,20 @@ type response struct {
 	Response    interface{} `json:"response,omitempty"`
 }
 
-func (c *Admin) PluginRequest(req PluginRequest, resp interface{}) error {
+type adminRequest struct {
+	Janus         string      `json:"janus,omitempty"`
+	TransactionID string      `json:"transaction,omitempty"`
+	AdminSecret   string      `json:"admin_secret,omitempty"`
+	Plugin        string      `json:"plugin,omitempty"`
+	Request       interface{} `json:"request,omitempty"`
+}
+
+func (r *adminRequest) Transaction() string {
+	return r.TransactionID
+}
+
+func (c *Admin) PluginRequestCtx(ctx context.Context, req PluginRequest,
+	resp interface{}) error {
 	wrap := func(err error) error {
 		return wrapErr("Admin.PluginRequest", err)
 	}
@@ -42,25 +58,20 @@ func (c *Admin) PluginRequest(req PluginRequest, resp interface{}) error {
 		panic("resp is nil")
 	}
 	if req.Async() {
-		panic(fmt.Sprintf("async requests are not supported (plugin: %s)", req.Plugin()))
+		panic(fmt.Sprintf("async requests are not supported (plugin: %s)",
+			req.Plugin()))
 	}
 
 	jError := &JanusError{}
 	trID := genTransactionID()
-	aReq := struct {
-		Janus       string      `json:"janus,omitempty"`
-		Trnsaction  string      `json:"transaction,omitempty"`
-		AdminSecret string      `json:"admin_secret,omitempty"`
-		Plugin      string      `json:"plugin,omitempty"`
-		Request     interface{} `json:"request,omitempty"`
-	}{"message_plugin", trID, c.AdminSecret, req.Plugin(), req.Build()}
-
-	aRes := &response{
+	aReq := adminRequest{"message_plugin", trID, c.AdminSecret, req.Plugin(),
+		req.Build()}
+	aRes := response{
 		Response: resp,
 		Error:    jError,
 	}
 
-	err := c.Transport.Request(&aReq, &aRes)
+	err := c.Transport.Request(ctx, &aReq, &aRes)
 	if err != nil {
 		return wrap(&TransportError{err})
 	}

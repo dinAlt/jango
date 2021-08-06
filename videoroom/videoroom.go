@@ -21,9 +21,9 @@ func (pluginImpl) Plugin() string {
 	return "janus.plugin.videoroom"
 }
 
-type asyncFasleImpl struct{}
+type asyncFalseImpl struct{}
 
-func (r *asyncFasleImpl) Async() bool {
+func (r *asyncFalseImpl) Async() bool {
 	return false
 }
 
@@ -32,7 +32,7 @@ var _ jango.PluginRequest = (*ListRequest)(nil)
 type ListRequest struct {
 	Request string `json:"request,omitempty"`
 	pluginImpl
-	asyncFasleImpl
+	asyncFalseImpl
 }
 
 func (r *ListRequest) Build() interface{} {
@@ -101,8 +101,9 @@ type RTPForwardRequest struct {
 	SrtpSuite     int         `json:"srtp_suite,omitempty"`
 	SrtpCrypto    string      `json:"srtp_crypto,omitempty"`
 	AdminKey      string      `json:"admin_key,omitempty"`
+	Secret        string      `json:"secret,omitempty"`
 	pluginImpl
-	asyncFasleImpl
+	asyncFalseImpl
 }
 
 func (r *RTPForwardRequest) Build() interface{} {
@@ -116,7 +117,7 @@ type RTPForwardResponse struct {
 	Error       string      `json:"error,omitempty"`
 	Room        interface{} `json:"room,omitempty"`
 	PublisherID interface{} `json:"publisher_id,omitempty"`
-	RtpStream   struct {
+	RtpStream   struct {    // nolint:stylecheck
 		Host           string `json:"host,omitempty"`
 		Audio          int    `json:"audio,omitempty"`
 		AudioRtcp      int    `json:"audio_rtcp,omitempty"`

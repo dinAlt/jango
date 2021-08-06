@@ -37,9 +37,9 @@ func (pluginImpl) Plugin() string {
 	return "janus.plugin.streaming"
 }
 
-type asyncFasleImpl struct{}
+type asyncFalseImpl struct{}
 
-func (r *asyncFasleImpl) Async() bool {
+func (r *asyncFalseImpl) Async() bool {
 	return false
 }
 
@@ -49,7 +49,7 @@ type ListRequest struct {
 	Request string `json:"request,omitempty"`
 
 	pluginImpl
-	asyncFasleImpl
+	asyncFalseImpl
 }
 
 func (r *ListRequest) Build() interface{} {
@@ -130,14 +130,14 @@ type CreateRequest struct {
 
 	E2ee bool `json:"e2ee,omitempty"`
 
-	Url           string `json:"url,omitempty"`
+	Url           string `json:"url,omitempty"` // nolint:stylecheck
 	RtspUser      string `json:"rtsp_user,omitempty"`
 	RtspPwd       string `json:"rtsp_pwd,omitempty"`
 	RtspFailcheck bool   `json:"rtsp_failcheck,omitempty"`
 	Rtspiface     string `json:"rtspiface,omitempty"`
 
 	pluginImpl
-	asyncFasleImpl
+	asyncFalseImpl
 }
 
 func (r *CreateRequest) Build() interface{} {
@@ -194,7 +194,7 @@ type CreateResponse struct {
 
 	E2ee bool `json:"e2ee,omitempty"`
 
-	Url           string `json:"url,omitempty"`
+	Url           string `json:"url,omitempty"` // nolint:stylecheck
 	RtspUser      string `json:"rtsp_user,omitempty"`
 	RtspPwd       string `json:"rtsp_pwd,omitempty"`
 	RtspFailcheck bool   `json:"rtsp_failcheck,omitempty"`
@@ -214,10 +214,10 @@ type DestroyRequest struct {
 	Request   string      `json:"request,omitempty"`
 	ID        interface{} `json:"id,omitempty"`
 	Secret    string      `json:"secret,omitempty"`
-	Permanent string      `json:"permanent,omitempty"`
+	Permanent bool        `json:"permanent,omitempty"`
 
 	pluginImpl
-	asyncFasleImpl
+	asyncFalseImpl
 }
 
 func (r *DestroyRequest) Build() interface{} {

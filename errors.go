@@ -1,13 +1,11 @@
 package jango
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func wrapErr(where string, err error) error {
 	return fmt.Errorf("[jango.%s] %w", where, err)
-}
-
-type Transport interface {
-	Request(req interface{}, resp interface{}) error
 }
 
 type TransportError struct {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -91,7 +92,7 @@ func videoroomCmd(args []string) error {
 		AdminSecret: adminSecret,
 	}
 	resp := &videoroom.ListResponse{}
-	err = acli.PluginRequest(&videoroom.ListRequest{}, resp)
+	err = acli.PluginRequestCtx(context.Background(), &videoroom.ListRequest{}, resp)
 	if err != nil {
 		return err
 	}
