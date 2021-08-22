@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/streadway/amqp"
 
@@ -24,10 +25,13 @@ type RabbitMQ struct {
 	ConsumeKey        string
 	pendigTransaction string
 	responseCh        chan []byte
+	initOnce          sync.Once
 }
 
 func (mq *RabbitMQ) Request(ctx context.Context, req interface{},
 	resp interface{}) error {
+	mq.init()
+
 	log := func(format string, v ...interface{}) {
 		mq.l.Printf("Request", format, v...)
 	}
@@ -73,8 +77,13 @@ func (mq *RabbitMQ) Request(ctx context.Context, req interface{},
 	return nil
 }
 
+func (mq *RabbitMQ) init() {
+	mq.initOnce.Do(mq.setupLogger)
+}
+
 func (mq *RabbitMQ) Serve() error {
-	mq.setupLogger()
+	mq.init()
+
 	log := func(format string, v ...interface{}) {
 		mq.l.Printf("Serve", format, v...)
 	}
