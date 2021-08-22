@@ -27,14 +27,7 @@ type Admin struct {
 	Transport
 }
 
-type response struct {
-	Janus       string      `json:"janus,omitempty"`
-	Transaction string      `json:"transaction,omitempty"`
-	Error       *JanusError `json:"error,omitempty"`
-	Response    interface{} `json:"response,omitempty"`
-}
-
-type adminRequest struct {
+type request struct {
 	Janus         string      `json:"janus,omitempty"`
 	TransactionID string      `json:"transaction,omitempty"`
 	AdminSecret   string      `json:"admin_secret,omitempty"`
@@ -42,8 +35,22 @@ type adminRequest struct {
 	Request       interface{} `json:"request,omitempty"`
 }
 
-func (r *adminRequest) Transaction() string {
+func (r *request) Transaction() string {
 	return r.TransactionID
+}
+
+type pluginResponse struct {
+	Janus       string      `json:"janus,omitempty"`
+	Transaction string      `json:"transaction,omitempty"`
+	Error       *JanusError `json:"error,omitempty"`
+	Response    interface{} `json:"response,omitempty"`
+}
+
+type sessionResponse struct {
+	Janus       string      `json:"janus,omitempty"`
+	Transaction string      `json:"transaction,omitempty"`
+	Error       *JanusError `json:"error,omitempty"`
+	Sessions    []int64     `json:"sessions,omitempty"`
 }
 
 func (c *Admin) PluginRequestCtx(ctx context.Context, req PluginRequest,
@@ -62,21 +69,23 @@ func (c *Admin) PluginRequestCtx(ctx context.Context, req PluginRequest,
 			req.Plugin()))
 	}
 
-	jError := &JanusError{}
-	trID := genTransactionID()
-	aReq := adminRequest{"message_plugin", trID, c.AdminSecret, req.Plugin(),
-		req.Build()}
-	aRes := response{
+	aReq := request{
+		Janus:         "message_plugin",
+		TransactionID: genTransactionID(),
+		AdminSecret:   c.AdminSecret,
+		Plugin:        req.Plugin(),
+		Request:       req.Build(),
+	}
+	aRes := pluginResponse{
 		Response: resp,
-		Error:    jError,
 	}
 
 	err := c.Transport.Request(ctx, &aReq, &aRes)
 	if err != nil {
 		return wrap(&TransportError{err})
 	}
-	if jError.Code != 0 {
-		return wrap(jError)
+	if aRes.Error != nil && aRes.Error.Code != 0 {
+		return wrap(aRes.Error)
 	}
 	if ep, ok := resp.(Errer); ok {
 		if err := ep.Err(); err != nil {
@@ -84,10 +93,33 @@ func (c *Admin) PluginRequestCtx(ctx context.Context, req PluginRequest,
 		}
 	}
 
-	aRes.Response = nil
-	aRes.Error = nil
-
 	return nil
+}
+
+func (c *Admin) Sessions(ctx context.Context) ([]int64, error) {
+	wrap := func(err error) error {
+		return wrapErr("Admin.Sessions", err)
+	}
+	if c.Transport == nil {
+		panic("Transport is nil")
+	}
+
+	aReq := request{
+		Janus:         "list_sessions",
+		TransactionID: genTransactionID(),
+		AdminSecret:   c.AdminSecret,
+	}
+	aRes := sessionResponse{}
+
+	err := c.Transport.Request(ctx, &aReq, &aRes)
+	if err != nil {
+		return nil, wrap(&TransportError{err})
+	}
+	if aRes.Error != nil && aRes.Error.Code != 0 {
+		return nil, wrap(aRes.Error)
+	}
+
+	return aRes.Sessions, nil
 }
 
 func genTransactionID() string {
