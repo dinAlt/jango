@@ -64,6 +64,8 @@ func main() {
 	switch cmd {
 	case "videoroom":
 		cmdFunc = videoroomCmd
+	case "sessions":
+		cmdFunc = sessionsCmd
 	}
 	if cmdFunc == nil {
 		fmt.Println("command not found")
@@ -81,6 +83,9 @@ func videoroomCmd(args []string) error {
 		return err
 	}
 	subcommad := flags.Arg(0)
+	if subcommad == "" {
+		return fmt.Errorf("videoroom subcommad required")
+	}
 	if subcommad != "list" {
 		return fmt.Errorf("command not found: %s", subcommad)
 	}
@@ -97,6 +102,24 @@ func videoroomCmd(args []string) error {
 		return err
 	}
 	fmt.Printf("%+v\n", *resp)
+
+	return nil
+}
+
+func sessionsCmd(_ []string) error {
+	tr := &transport.HTTP{
+		URL: adminEndpoint,
+	}
+	acli := jango.Admin{
+		Transport:   tr,
+		AdminSecret: adminSecret,
+	}
+	sessions, err := acli.Sessions(context.Background())
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%+v\n", sessions)
 
 	return nil
 }
