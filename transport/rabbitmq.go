@@ -26,11 +26,15 @@ type RabbitMQ struct {
 	pendigTransaction string
 	responseCh        chan []byte
 	initOnce          sync.Once
+	consumeC          <-chan amqp.Delivery
 }
 
 func (mq *RabbitMQ) Request(ctx context.Context, req interface{},
 	resp interface{}) error {
-	mq.init()
+	err := mq.init()
+	if err != nil {
+		return err
+	}
 
 	log := func(format string, v ...interface{}) {
 		mq.l.Printf("Request", format, v...)
@@ -77,39 +81,55 @@ func (mq *RabbitMQ) Request(ctx context.Context, req interface{},
 	return nil
 }
 
-func (mq *RabbitMQ) init() {
-	mq.initOnce.Do(mq.setupLogger)
+func (mq *RabbitMQ) init() error {
+	var err error
+	log := func(format string, v ...interface{}) {
+		mq.l.Printf("init", format, v...)
+	}
+
+	mq.initOnce.Do(func() {
+		mq.setupLogger()
+
+		mq.responseCh = make(chan []byte)
+		consumeQueue, err1 := mq.Channel.QueueDeclare("", false, true, false, false,
+			nil)
+		if err1 != nil {
+			err = fmt.Errorf("Channel.QueueDeclare(...): %w", err)
+			return
+		}
+
+		log("queue: %s, exchange: %s, key: %s", consumeQueue.Name,
+			mq.ConsumeFrom, mq.ConsumeKey)
+		err1 = mq.Channel.QueueBind(consumeQueue.Name, mq.ConsumeKey, mq.ConsumeFrom, false,
+			nil)
+		if err1 != nil {
+			err = fmt.Errorf("Channel.QueueBind(%s, %s, %s, ...): %w", consumeQueue.Name,
+				mq.ConsumeKey, mq.ConsumeFrom, err)
+			return
+		}
+		ch, err1 := mq.Channel.Consume(consumeQueue.Name, "", true, false, false,
+			false, nil)
+		if err1 != nil {
+			err = fmt.Errorf("Channel.Consume(%s, ...): %w", mq.ConsumeFrom, err)
+			return
+		}
+		mq.consumeC = ch
+	})
+
+	return err
 }
 
 func (mq *RabbitMQ) Serve() error {
-	mq.init()
+	err := mq.init()
+	if err != nil {
+		return err
+	}
 
 	log := func(format string, v ...interface{}) {
 		mq.l.Printf("Serve", format, v...)
 	}
 
-	mq.responseCh = make(chan []byte)
-	consumeQueue, err := mq.Channel.QueueDeclare("", false, false, false, false,
-		nil)
-	if err != nil {
-		return fmt.Errorf("Channel.QueueDeclare(...): %w", err)
-	}
-
-	log("queue: %s, exchange: %s, key: %s", consumeQueue.Name,
-		mq.ConsumeFrom, mq.ConsumeKey)
-	err = mq.Channel.QueueBind(consumeQueue.Name, mq.ConsumeKey, mq.ConsumeFrom, false,
-		nil)
-	if err != nil {
-		return fmt.Errorf("Channel.QueueBind(%s, %s, %s, ...): %w", consumeQueue.Name,
-			mq.ConsumeKey, mq.ConsumeFrom, err)
-	}
-	ch, err := mq.Channel.Consume(consumeQueue.Name, "", true, false, false,
-		false, nil)
-	if err != nil {
-		return fmt.Errorf("Channel.Consume(%s, ...): %w", mq.ConsumeFrom, err)
-	}
-
-	for d := range ch {
+	for d := range mq.consumeC {
 		log("INCOMING: %s", d.Body)
 		if d.CorrelationId != mq.pendigTransaction {
 			continue
