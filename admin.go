@@ -53,6 +53,12 @@ type sessionResponse struct {
 	Sessions    []int64     `json:"sessions,omitempty"`
 }
 
+type pingResponse struct {
+	Janus       string      `json:"janus,omitempty"`
+	Transaction string      `json:"transaction,omitempty"`
+	Error       *JanusError `json:"error,omitempty"`
+}
+
 func (c *Admin) PluginRequestCtx(ctx context.Context, req PluginRequest,
 	resp interface{}) error {
 	wrap := func(err error) error {
@@ -120,6 +126,35 @@ func (c *Admin) Sessions(ctx context.Context) ([]int64, error) {
 	}
 
 	return aRes.Sessions, nil
+}
+
+func (c *Admin) Ping(ctx context.Context) error {
+	wrap := func(err error) error {
+		return wrapErr("Admin.Ping", err)
+	}
+	if c.Transport == nil {
+		panic("Transport is nil")
+	}
+
+	aReq := request{
+		Janus:         "ping",
+		TransactionID: genTransactionID(),
+		AdminSecret:   c.AdminSecret,
+	}
+	aRes := pingResponse{}
+
+	err := c.Transport.Request(ctx, &aReq, &aRes)
+	if err != nil {
+		return wrap(&TransportError{err})
+	}
+	if aRes.Error != nil && aRes.Error.Code != 0 {
+		return wrap(aRes.Error)
+	}
+	if aRes.Janus != "pong" {
+		return wrap(fmt.Errorf("unexpected value returned: %s", aRes.Janus))
+	}
+
+	return nil
 }
 
 func genTransactionID() string {
