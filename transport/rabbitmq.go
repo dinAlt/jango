@@ -104,7 +104,7 @@ func (mq *RabbitMQ) init() error {
 			nil)
 		if err1 != nil {
 			err = fmt.Errorf("Channel.QueueBind(%s, %s, %s, ...): %w", consumeQueue.Name,
-				mq.ConsumeKey, mq.ConsumeFrom, err)
+				mq.ConsumeKey, mq.ConsumeFrom, err1)
 			return
 		}
 		ch, err1 := mq.Channel.Consume(consumeQueue.Name, "", true, false, false,
