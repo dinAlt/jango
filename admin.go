@@ -62,7 +62,7 @@ type pingResponse struct {
 func (c *Admin) PluginRequestCtx(ctx context.Context, req PluginRequest,
 	resp interface{}) error {
 	wrap := func(err error) error {
-		return wrapErr("Admin.PluginRequest", err)
+		return wrapErr("Admin.PluginRequestCtx", err)
 	}
 	if c.Transport == nil {
 		panic("Transport is nil")
@@ -102,9 +102,9 @@ func (c *Admin) PluginRequestCtx(ctx context.Context, req PluginRequest,
 	return nil
 }
 
-func (c *Admin) Sessions(ctx context.Context) ([]int64, error) {
+func (c *Admin) SessionsCtx(ctx context.Context) ([]int64, error) {
 	wrap := func(err error) error {
-		return wrapErr("Admin.Sessions", err)
+		return wrapErr("Admin.SessionsCtx", err)
 	}
 	if c.Transport == nil {
 		panic("Transport is nil")
@@ -128,9 +128,9 @@ func (c *Admin) Sessions(ctx context.Context) ([]int64, error) {
 	return aRes.Sessions, nil
 }
 
-func (c *Admin) Ping(ctx context.Context) error {
+func (c *Admin) PingCtx(ctx context.Context) error {
 	wrap := func(err error) error {
-		return wrapErr("Admin.Ping", err)
+		return wrapErr("Admin.PingCtx", err)
 	}
 	if c.Transport == nil {
 		panic("Transport is nil")
