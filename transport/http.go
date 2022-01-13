@@ -14,8 +14,7 @@ var _ jango.Transport = (*HTTP)(nil)
 
 type HTTP struct {
 	*http.Client
-	UseHTTPS bool
-	URL      string
+	URL string
 }
 
 func (c *HTTP) Request(ctx context.Context, req interface{}, resp interface{}) error {
