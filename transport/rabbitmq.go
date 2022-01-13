@@ -119,14 +119,17 @@ func (mq *RabbitMQ) init() error {
 	return err
 }
 
-func (mq *RabbitMQ) Serve() error {
+// ProcessEvents reads and handles events from RabbitMQ.Channel.
+// This method is blocking and returns only if transport initialization failed,
+// or after RabbitMQ.Channel closed. Returned value is always non nil error.
+func (mq *RabbitMQ) ProcessEvents() error {
 	err := mq.init()
 	if err != nil {
 		return err
 	}
 
 	log := func(format string, v ...interface{}) {
-		mq.l.Printf("Serve", format, v...)
+		mq.l.Printf("ProcessEvents", format, v...)
 	}
 
 	for d := range mq.consumeC {
