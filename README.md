@@ -1,5 +1,5 @@
 # Go client for Janus WebRTC server API
-See official [website](https://janus.conf.meetecho.com/) to get more info about `Janus`.
+Visit official [website](https://janus.conf.meetecho.com/) to get more info about `Janus`.
 
 ## Restrictions
 - Quite small API subset is implemented right now.
